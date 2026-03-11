@@ -25,8 +25,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
 
         // Auth
-        Route::post('/logout',  [AuthController::class, 'logout']);
-        Route::get('/me',       [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me',      [AuthController::class, 'me']);
 
         // ── Admin only ────────────────────────────────
         Route::middleware('role:admin')->group(function () {
@@ -43,19 +43,18 @@ Route::prefix('v1')->group(function () {
                  ->shallow();
 
             // Borrow management — admin sees all
-            Route::get('borrows',         [BorrowController::class, 'index']);
+            Route::get('borrows',          [BorrowController::class, 'index']);
             Route::get('borrows/{borrow}', [BorrowController::class, 'show']);
-            Route::patch('borrows/{borrow}/return', [BorrowController::class, 'processReturn']);
 
             // Audit log — admin only
             Route::get('audit-logs', [AuditLogController::class, 'index']);
 
             // Item management — admin CRUD
-            Route::post('items',               [ItemController::class, 'store']);
-            Route::put('items/{item}',         [ItemController::class, 'update']);
-            Route::delete('items/{item}',      [ItemController::class, 'destroy']);
-            Route::patch('items/{item}/status',[ItemController::class, 'updateStatus']);
-            Route::patch('items/{item}/quantity',[ItemController::class, 'adjustQuantity']);
+            Route::post('items',                      [ItemController::class, 'store']);
+            Route::put('items/{item}',                [ItemController::class, 'update']);
+            Route::delete('items/{item}',             [ItemController::class, 'destroy']);
+            Route::patch('items/{item}/status',       [ItemController::class, 'updateStatus']);
+            Route::patch('items/{item}/quantity',     [ItemController::class, 'adjustQuantity']);
         });
 
         // ── Staff + Admin shared ──────────────────────
@@ -64,15 +63,14 @@ Route::prefix('v1')->group(function () {
         Route::get('items',        [ItemController::class, 'index']);
         Route::get('items/{item}', [ItemController::class, 'show']);
 
-        // Storage map — read only for staff
-        Route::get('cupboards',              [CupboardController::class, 'index']);
-        Route::get('cupboards/{cupboard}',   [CupboardController::class, 'show']);
-        Route::get('places/{place}',         [PlaceController::class, 'show']);
+        // Storage map — read only
+        Route::get('cupboards',            [CupboardController::class, 'index']);
+        Route::get('cupboards/{cupboard}', [CupboardController::class, 'show']);
+        Route::get('places/{place}',       [PlaceController::class, 'show']);
 
-        // Borrows — staff creates borrows
-        Route::post('borrows',              [BorrowController::class, 'store']);
-
-        // Staff sees their own processed borrows
-        Route::get('my-borrows',            [BorrowController::class, 'myBorrows']);
+        // Borrows — staff creates borrows, returns their own
+        Route::post('borrows',                      [BorrowController::class, 'store']);
+        Route::patch('borrows/{borrow}/return',     [BorrowController::class, 'processReturn']);
+        Route::get('my-borrows',                    [BorrowController::class, 'myBorrows']);
     });
 });
