@@ -20,6 +20,9 @@ class PlaceResource extends JsonResource
                 'name' => $this->cupboard->name,
                 'code' => $this->cupboard->code,
             ]),
+            'items'         => $this->whenLoaded('items', fn() =>   // ← ADDED
+                ItemResource::collection($this->items)
+            ),
         ];
     }
 }

@@ -10,13 +10,13 @@ use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     /**
      * GET /api/v1/users
-     * List all users with optional search + role/status filters.
      */
     public function index(Request $request): JsonResponse
     {
@@ -53,7 +53,6 @@ class UserController extends Controller
 
     /**
      * POST /api/v1/users
-     * Admin creates a new user. No self-registration.
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
@@ -65,7 +64,6 @@ class UserController extends Controller
             'status'   => 'active',
         ]);
 
-        // Audit log
         AuditLog::record(
             action:     AuditLog::USER_CREATED,
             entityType: 'User',
@@ -101,7 +99,6 @@ class UserController extends Controller
 
         $data = $request->only(['name', 'email', 'role']);
 
-        // Only hash and update password if provided
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -110,7 +107,6 @@ class UserController extends Controller
 
         $after = ['name' => $user->name, 'email' => $user->email, 'role' => $user->role];
 
-        // Log role change separately if it changed
         if ($before['role'] !== $after['role']) {
             AuditLog::record(
                 action:        AuditLog::USER_ROLE_CHANGED,
@@ -140,7 +136,6 @@ class UserController extends Controller
 
     /**
      * DELETE /api/v1/users/{user}
-     * Admin cannot delete themselves.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
@@ -159,7 +154,13 @@ class UserController extends Controller
             previousValue: ['name' => $user->name, 'email' => $user->email, 'role' => $user->role],
         );
 
-        $user->tokens()->delete(); // revoke all sessions
+        // Null out borrow records that reference this user as processor
+        // before deleting to avoid foreign key violation
+        DB::table('borrows')
+            ->where('processed_by', $user->id)
+            ->update(['processed_by' => null]);
+
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json([
@@ -170,7 +171,6 @@ class UserController extends Controller
 
     /**
      * PATCH /api/v1/users/{user}/toggle-status
-     * Activate or deactivate a user account.
      */
     public function toggleStatus(Request $request, User $user): JsonResponse
     {
@@ -184,7 +184,6 @@ class UserController extends Controller
         $before = $user->status;
         $user->update(['status' => $user->status === 'active' ? 'inactive' : 'active']);
 
-        // If deactivated, revoke all tokens immediately
         if ($user->status === 'inactive') {
             $user->tokens()->delete();
         }

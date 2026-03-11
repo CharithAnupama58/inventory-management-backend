@@ -74,8 +74,8 @@ class CupboardController extends Controller
 
     public function destroy(Cupboard $cupboard): JsonResponse
     {
-        // Prevent deletion if cupboard has places with items
-        $hasItems = $cupboard->items()->exists();
+        // Prevent deletion if any place has items inside
+        $hasItems = $cupboard->places()->whereHas('items')->exists();
 
         if ($hasItems) {
             return response()->json([
@@ -92,6 +92,8 @@ class CupboardController extends Controller
             previousValue: ['name' => $cupboard->name, 'code' => $cupboard->code],
         );
 
+        // Delete all empty places first, then the cupboard
+        $cupboard->places()->delete();
         $cupboard->delete();
 
         return response()->json([
